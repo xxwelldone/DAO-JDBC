@@ -39,8 +39,7 @@ public class Department implements Serializable {
     @Override
     public boolean equals(Object o) {
         if (this == o) return true;
-        if (!(o instanceof Department)) return false;
-        Department that = (Department) o;
+        if (!(o instanceof Department that)) return false;
         return Objects.equals(getId(), that.getId());
     }
 

@@ -5,10 +5,7 @@ import model_dao.SellerDAO;
 import model_entities.Department;
 import model_entities.Seller;
 
-import java.sql.Connection;
-import java.sql.PreparedStatement;
-import java.sql.ResultSet;
-import java.sql.SQLException;
+import java.sql.*;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -23,6 +20,35 @@ public class SellerDAOJDBC implements SellerDAO {
 
     @Override
     public void insert(Seller seller) {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            ps = conn.prepareStatement("" +
+                    "INSERT INTO seller" +
+                    "(Name, Email, BirthDate, BaseSalary, DepartmentId)" +
+                    "VALUES " +
+                    "(?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
+            ps.setString(1,seller.getName());
+            ps.setString(2,seller.getEmail());
+            ps.setDate(3, new java.sql.Date(seller.getBirthday().getTime()));
+            ps.setDouble(4, seller.getSalary());
+            ps.setInt(5, seller.getDepartment().getId());
+
+            int rowsAffected = ps.executeUpdate();
+            if(rowsAffected>0){
+                rs = ps.getGeneratedKeys();
+                if(rs.next()){
+                    int id = rs.getInt(1);
+                    seller.setId(id);
+                }
+            } else {
+                throw new DBException("Error inserting");
+            }
+
+
+        } catch (SQLException e){
+            throw new DBException(e.getMessage());
+        }
 
     }
 
@@ -32,7 +58,7 @@ public class SellerDAOJDBC implements SellerDAO {
     }
 
     @Override
-    public void deleById(Integer id) {
+    public void deleteById(Integer id) {
 
     }
 
@@ -60,16 +86,42 @@ public class SellerDAOJDBC implements SellerDAO {
     }
 
     @Override
-    public List<Seller> findAllbyId() {
+    public List<Seller> findAll() {
+        PreparedStatement ps = null;
+        ResultSet rs = null;
+        try {
+            ps = conn.prepareStatement(
+                    "SELECT seller.*,department.Name as DepName " +
+                            "FROM seller INNER JOIN department " +
+                            "ON seller.DepartmentId = department.Id " +
+                            "ORDER BY Name");
+            rs = ps.executeQuery();
+            List<Seller> sellersReturn = new ArrayList<>();
+            Map<Integer, Department> map = new HashMap<>();
+            while (rs.next()) {
+                Department d = map.get(rs.getInt("DepartmentId"));
+                if(d==null){
+                    d = instantiateDep(rs);
+                    map.put(rs.getInt("DepartmentId"), d);
+                }
 
-        return null;
+                sellersReturn.add(instantiateSeller(rs, d));
+
+            }
+
+            return sellersReturn;
+        } catch (SQLException e) {
+            throw new DBException(e.getMessage());
+        }
+
+
     }
 
     @Override
     public List<Seller> findByDepartment(Department dep) {
         PreparedStatement ps = null;
         ResultSet rs = null;
-        try{
+        try {
             ps = conn.prepareStatement("SELECT seller.*,department.Name as DepName " +
                     "FROM seller INNER JOIN department " +
                     "ON seller.DepartmentId = department.Id " +
@@ -80,10 +132,10 @@ public class SellerDAOJDBC implements SellerDAO {
             List<Seller> sellerReturn = new ArrayList<>();
             Map<Integer, Department> map = new HashMap<>();
 
-            while (rs.next()){
+            while (rs.next()) {
                 Department department = map.get(rs.getInt("DepartmentId"));
 
-                if(department==null){
+                if (department == null) {
                     department = instantiateDep(rs);
                     map.put(rs.getInt("DepartmentId"), department);
                 }
@@ -92,7 +144,7 @@ public class SellerDAOJDBC implements SellerDAO {
             }
             return sellerReturn;
 
-        } catch (SQLException e){
+        } catch (SQLException e) {
             throw new DBException(e.getMessage());
         }
     }

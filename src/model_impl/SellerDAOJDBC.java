@@ -28,16 +28,16 @@ public class SellerDAOJDBC implements SellerDAO {
                     "(Name, Email, BirthDate, BaseSalary, DepartmentId)" +
                     "VALUES " +
                     "(?, ?, ?, ?, ?)", Statement.RETURN_GENERATED_KEYS);
-            ps.setString(1,seller.getName());
-            ps.setString(2,seller.getEmail());
+            ps.setString(1, seller.getName());
+            ps.setString(2, seller.getEmail());
             ps.setDate(3, new java.sql.Date(seller.getBirthday().getTime()));
             ps.setDouble(4, seller.getSalary());
             ps.setInt(5, seller.getDepartment().getId());
 
             int rowsAffected = ps.executeUpdate();
-            if(rowsAffected>0){
+            if (rowsAffected > 0) {
                 rs = ps.getGeneratedKeys();
-                if(rs.next()){
+                if (rs.next()) {
                     int id = rs.getInt(1);
                     seller.setId(id);
                 }
@@ -46,7 +46,7 @@ public class SellerDAOJDBC implements SellerDAO {
             }
 
 
-        } catch (SQLException e){
+        } catch (SQLException e) {
             throw new DBException(e.getMessage());
         }
 
@@ -54,11 +54,38 @@ public class SellerDAOJDBC implements SellerDAO {
 
     @Override
     public void update(Seller seller) {
+        PreparedStatement ps = null;
+        try {
+            ps = conn.prepareStatement(
+                    "UPDATE seller " +
+                            "SET Name= ?, BirthDate= ?, BaseSalary= ?, DepartmentId= ?, Email=? " +
+                            "WHERE Id= ?"
+            );
+            ps.setString(1, seller.getName());
+            ps.setDate(2, new java.sql.Date(seller.getBirthday().getTime()));
+            ps.setDouble(3, seller.getSalary());
+            ps.setInt(4,
+                    seller.getDepartment().getId());
+            ps.setString(5, seller.getEmail());
+            ps.setInt(6, seller.getId());
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new DBException(e.getMessage());
+        }
 
     }
 
     @Override
     public void deleteById(Integer id) {
+        PreparedStatement ps = null;
+        try {
+            ps = conn.prepareStatement("DELETE from seller where Id=?");
+            ps.setInt(1,id);
+            ps.executeUpdate();
+        }catch(SQLException e){
+            throw new DBException(e.getMessage());
+        }
 
     }
 
@@ -100,7 +127,7 @@ public class SellerDAOJDBC implements SellerDAO {
             Map<Integer, Department> map = new HashMap<>();
             while (rs.next()) {
                 Department d = map.get(rs.getInt("DepartmentId"));
-                if(d==null){
+                if (d == null) {
                     d = instantiateDep(rs);
                     map.put(rs.getInt("DepartmentId"), d);
                 }
